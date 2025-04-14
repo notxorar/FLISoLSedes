@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FLISoL 2025 - Sedes</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #map { height: 90vh; width: 100vw; }
+    .top-bar {
+      padding: 10px;
+      background: #2c3e50;
+      color: white;
+      text-align: center;
+    }
+    .btn {
+      padding: 10px 20px;
+      margin: 10px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #2980b9;
+    }
+    .modal {
+      position: fixed;
+      top: 10%;
+      left: 10%;
+      width: 80%;
+      max-height: 70%;
+      overflow-y: auto;
+      background: white;
+      border: 2px solid #3498db;
+      border-radius: 10px;
+      padding: 20px;
+      z-index: 1000;
+      display: none;
+    }
+    .modal h2 {
+      margin-top: 0;
+    }
+    .close {
+      float: right;
+      cursor: pointer;
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    .sede-info {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+    }
+    .compartir {
+      margin-top: 5px;
+    }
+    .compartir a {
+      margin-right: 10px;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>FLISoL 2025 - Sedes</h1>
+    <button class="btn" onclick="buscarCercana()">Buscar sede más cercana</button>
+  </div>
+  <div id="map"></div>
+  <div id="modal" class="modal">
+    <span class="close" onclick="document.getElementById('modal').style.display='none'">✖</span>
+    <h2>Sedes más cercanas</h2>
+    <div id="resultados"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+
+function centrarEnMapa(coords) {
+  map.flyTo(coords, 16); // También podés usar map.setView(coords, 16)
+  
+    const modal = document.getElementById("modal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
+    const sedes = [
+      { ciudad: "Ciudad Autónoma de Buenos Aires", url: "https://flisol.info/FLISOL2025/Argentina/CABA", direccion: "Viamonte 2518", coords: [-34.6062848, -58.3794688] },
+      { ciudad: "Córdoba", url: "https://flisol.info/FLISOL2025/Argentina/Cordoba", direccion: "Ciudad Universitaria", coords: [-31.43401,-64.18632] },
+      { ciudad: "San Cristobal", url: "https://flisol.info/FLISOL2025/Argentina/Santa-Fe/San-Cristobal", direccion: "Alvear 646", coords: [-30.3109661,-61.2329652] },
+      { ciudad: "Sierras Chicas", url: "https://flisol.info/FLISOL2025/Argentina/SierrasChicas", direccion: "Dermidio Loza 252, Río Ceballos, Córdoba", coords: [-31.2043894, -64.3140594] },
+      { ciudad: "San Juan", url: "https://flisol.info/FLISOL2025/Argentina/San-Juan", direccion: "Avenida Ignacio de la Roza 590", coords: [-31.5407749,-68.5792448] },
+      { ciudad: "José C Paz", url: "https://flisol.info/FLISOL2025/Argentina/Jose-C-Paz", direccion: "Leandro N. Alem 4731", coords: [-34.5210461,-58.7479877] },
+      { ciudad: "Villa Mercedes", url: "https://flisol.info/FLISOL2025/Argentina/VillaMercedes", direccion: "Las Heras 383", coords: [-33.6870272,-65.4703878] },
+      { ciudad: "Quilmes", url: "https://flisol.info/FLISOL2025/Argentina/Quilmes", direccion: "Belgrano N°950 - Don Bosco", coords: [-34.7064967, -58.298532] },
+      { ciudad: "Rio Cuarto", url: "https://flisol.info/FLISOL2025/Argentina/RioCuarto", direccion: "Lavalle 954", coords: [-33.1273234,-64.3458308] },
+      { ciudad: "Neuquén", url: "https://flisol.info/FLISOL2025/Argentina/Neuquen", direccion: "Buenos Aires 1400", coords: [-38.9405405,-68.0564352] }
+    ];
+
+    const map = L.map('map').setView([-34.6, -58.4], 5);
+    L.tileLayer('https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG%3A3857@png/{z}/{x}/{-y}.png', {
+    attribution: '<a href="http://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> | <a href="http://www.ign.gob.ar/AreaServicios/Argenmap/IntroduccionV2" target="_blank">Instituto Geográfico Nacional</a> + <a href="http://www.osm.org/copyright" target="_blank">OpenStreetMap</a>',
+}).addTo(map);
+
+    sedes.forEach(sede => {
+      const marker = L.marker(sede.coords).addTo(map);
+      marker.bindPopup(`
+        <strong>${sede.ciudad}</strong><br>
+        ${sede.direccion}<br>
+        <a href="${sede.url}" target="_blank">Ver más</a><br><br>
+        <div class="compartir">
+          <a href="https://wa.me/?text=${encodeURIComponent("¿Organizamos para ir al FLISoL en " + sede.ciudad + "? " + sede.url)}" target="_blank">📱 WhatsApp</a>
+          <a href="https://t.me/share/url?url=${encodeURIComponent(sede.url)}&text=${encodeURIComponent("¿Organizamos para ir al FLISoL en " + sede.ciudad + "?")}" target="_blank">📢 Telegram</a>
+          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent("¿Organizamos para ir al #FLISoL2025 en " + sede.ciudad + "? " + sede.url)}" target="_blank">🐦 Twitter/X</a>
+        </div>
+      `);
+    });
+
+    function distancia(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) ** 2 +
+                Math.cos(lat1 * Math.PI / 180) *
+                Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function buscarCercana() {
+      if (!navigator.geolocation) {
+        alert("Tu navegador no soporta geolocalización.");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const resultados = sedes.map(sede => {
+          const d = distancia(lat, lon, sede.coords[0], sede.coords[1]);
+          return { ...sede, distancia: d.toFixed(2) };
+        }).sort((a, b) => a.distancia - b.distancia);
+
+
+
+
+const contenedor = document.getElementById("resultados");
+contenedor.innerHTML = "";
+resultados.forEach(s => {
+  const div = document.createElement("div");
+  div.className = "sede-info";
+  div.innerHTML = `
+    <strong>${s.ciudad}</strong> (${s.distancia} km)<br>
+    ${s.direccion}<br>
+    <button class="btn" onclick="centrarEnMapa([${s.coords[0]}, ${s.coords[1]}])">Ver en el mapa</button>
+  `;
+  contenedor.appendChild(div);
+});
+
+
+        document.getElementById("modal").style.display = "block";
+      }, err => {
+        alert("Error obteniendo tu ubicación.");
+      });
+    }
+  </script>
+</body>
+</html>
