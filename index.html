@@ -6,14 +6,34 @@
   <title>FLISoL 2025 - Sedes</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    #map { height: 90vh; width: 100vw; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: visible;
+      font-family: Arial, sans-serif;
+    }
+    
     .top-bar {
-      padding: 10px;
+      height: 50px;
+      padding: 5px 10px;
       background: #2c3e50;
       color: white;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
+    
+    .top-bar h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+    
+    #map {
+      height: calc(100vh - 50px);
+      width: 100vw;
+    }
+
     .btn {
       padding: 10px 20px;
       margin: 10px;
@@ -26,20 +46,22 @@
     .btn:hover {
       background: #2980b9;
     }
-    .modal {
-      position: fixed;
-      top: 10%;
-      left: 10%;
-      width: 80%;
-      max-height: 70%;
-      overflow-y: auto;
-      background: white;
-      border: 2px solid #3498db;
-      border-radius: 10px;
-      padding: 20px;
-      z-index: 1000;
-      display: none;
-    }
+	.modal {
+  	position: fixed;
+  	top: 50%;
+  	left: 50%;
+  	transform: translate(-50%, -50%);
+  	width: 80%;
+  	max-width: 600px;
+  	max-height: 70%;
+  	overflow-y: auto;
+  	background: white;
+  	border: 2px solid #3498db;
+  	border-radius: 10px;
+  	padding: 20px;
+  	z-index: 1000;
+  	display: none;
+	}
     .modal h2 {
       margin-top: 0;
     }
@@ -61,13 +83,131 @@
       margin-right: 10px;
       text-decoration: none;
     }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #34495e;
+      min-width: 120px;
+      z-index: 1001;
+      right: 0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    
+    .dropdown-content a {
+      color: white;
+      padding: 10px 15px;
+      text-decoration: none;
+      display: block;
+    }
+    
+    .dropdown-content a:hover {
+      background-color: #2c3e50;
+    }
+    
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .leaflet-control-attribution {
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 3px 8px;
+      font-size: 11px;
+      z-index: 500;
+      bottom: 0;
+      right: 0;
+    }
+    
+    /* Estilos para el formulario de búsqueda */
+	.busqueda-container {
+  	position: fixed;
+  	top: 50%;
+  	left: 50%;
+  	transform: translate(-50%, -50%);
+  	background: rgba(255, 255, 255, 0.9);
+  	padding: 15px;
+  	border-radius: 8px;
+  	box-shadow: 0 0 10px rgba(0,0,0,0.2);
+  	z-index: 1000;
+  	min-width: 250px;
+	}
+    
+    .busqueda-container select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    .busqueda-container input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    .busqueda-container .btn-search {
+      width: 100%;
+      margin: 5px 0;
+      padding: 8px;
+    }
+    
+    .autocomplete-suggestions {
+      position: absolute;
+      border: 1px solid #ccc;
+      border-top: none;
+      background: white;
+      z-index: 1000;
+      max-height: 150px;
+      overflow-y: auto;
+      width: calc(100% - 2px);
+    }
+    
+    .autocomplete-suggestion {
+      padding: 8px;
+      cursor: pointer;
+    }
+    
+    .autocomplete-suggestion:hover {
+      background: #f0f0f0;
+    }
   </style>
 </head>
 <body>
   <div class="top-bar">
     <h1>FLISoL 2025 - Sedes</h1>
     <button class="btn" onclick="buscarCercana()">Buscar sede más cercana</button>
+    <button class="btn" onclick="toggleBusqueda()">Buscar por localidad</button>
+    <div class="dropdown">
+      <button class="btn">Info ⏷</button>
+      <div class="dropdown-content">
+        <a href="https://flisol.info/FLISOL2025/Argentina" target="_blank">Flisol.info</a>
+        <a href="https://t.me/flisolinfo" target="_blank">Telegram</a>
+        <a href="https://eventol.flisol.org.ar/" target="_blank">EventoL</a>
+        <a href="https://github.com/notxorar/FLISoLSedes" target="_blank">GitHub</a>
+      </div>
+    </div>
   </div>
+  
+  <div class="busqueda-container" id="busqueda-container" style="display: none;">
+    <h3>Buscar por localidad</h3>
+    <select id="provincia" onchange="actualizarLocalidades()">
+      <option value="">Seleccionar provincia</option>
+    </select>
+    <div style="position: relative;">
+      <input type="text" id="localidad" placeholder="Buscar localidad" oninput="buscarLocalidad(this.value)">
+      <div id="autocomplete-list" class="autocomplete-suggestions"></div>
+    </div>
+    <button class="btn btn-search" onclick="buscarPorUbicacion()">Buscar</button>
+    <button class="btn btn-search" onclick="toggleBusqueda()">Cerrar</button>
+  </div>
+  
   <div id="map"></div>
   <div id="modal" class="modal">
     <span class="close" onclick="document.getElementById('modal').style.display='none'">✖</span>
@@ -77,33 +217,248 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    let currentLocationMarker = null;
+    let selectedLocation = null;
+    let localidades = [];
+    let timeoutId = null;
+    
+    // Lista de provincias argentinas
+    const provincias = [
+      "Buenos Aires",
+      "Ciudad Autónoma de Buenos Aires",
+      "Catamarca",
+      "Chaco",
+      "Chubut",
+      "Córdoba",
+      "Corrientes",
+      "Entre Ríos",
+      "Formosa",
+      "Jujuy",
+      "La Pampa",
+      "La Rioja",
+      "Mendoza",
+      "Misiones",
+      "Neuquén",
+      "Río Negro",
+      "Salta",
+      "San Juan",
+      "San Luis",
+      "Santa Cruz",
+      "Santa Fe",
+      "Santiago del Estero",
+      "Tierra del Fuego",
+      "Tucumán"
+    ];
+    
+    // Cargar provincias en el select
+    function cargarProvincias() {
+      const provinciaSelect = document.getElementById('provincia');
+      provincias.forEach(provincia => {
+        const option = document.createElement('option');
+        option.value = provincia;
+        option.textContent = provincia;
+        provinciaSelect.appendChild(option);
+      });
+    }
+    
+    window.onload = function() {
+      cargarProvincias();
+    };
+    
+    function toggleBusqueda() {
+      const container = document.getElementById('busqueda-container');
+      if (container.style.display === 'none') {
+        container.style.display = 'block';
+      } else {
+        container.style.display = 'none';
+      }
+    }
+    
+    function buscarLocalidad(query) {
+      const provincia = document.getElementById('provincia').value;
+      const autocompleteList = document.getElementById('autocomplete-list');
+      
+      if (!provincia) {
+        alert('Por favor, selecciona una provincia primero');
+        return;
+      }
+      
+      if (query.length < 2) {
+        autocompleteList.innerHTML = '';
+        return;
+      }
+      
+      // Cancelar la búsqueda anterior si existe
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      // Realizar la búsqueda con un pequeño retraso para evitar demasiadas solicitudes
+      timeoutId = setTimeout(() => {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}, ${encodeURIComponent(provincia)}, Argentina&addressdetails=1&limit=5`;
+        
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            autocompleteList.innerHTML = '';
+            data.forEach(item => {
+              if (item.address && item.address.city) {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-suggestion';
+                div.textContent = item.address.city;
+                div.onclick = function() {
+                  document.getElementById('localidad').value = item.address.city;
+                  autocompleteList.innerHTML = '';
+                  selectedLocation = {
+                    lat: parseFloat(item.lat),
+                    lon: parseFloat(item.lon),
+                    displayName: item.display_name
+                  };
+                };
+                autocompleteList.appendChild(div);
+              }
+            });
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      }, 300);
+    }
+    
+    function buscarPorUbicacion() {
+      const provincia = document.getElementById('provincia').value;
+      const localidad = document.getElementById('localidad').value;
+      
+      if (!provincia || !localidad) {
+        alert('Por favor, selecciona una provincia y una localidad');
+        return;
+      }
+      
+      let lat, lon;
+      
+      if (selectedLocation) {
+        lat = selectedLocation.lat;
+        lon = selectedLocation.lon;
+        marcarUbicacion(lat, lon, localidad + ', ' + provincia);
+      } else {
+        // Si no hay ubicación seleccionada del autocompletado, usar geocodificación
+        const query = `${localidad}, ${provincia}, Argentina`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+        
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            if (data.length > 0) {
+              lat = parseFloat(data[0].lat);
+              lon = parseFloat(data[0].lon);
+              marcarUbicacion(lat, lon, query);
+            } else {
+              alert('No se encontró la ubicación. Por favor, verifica los datos ingresados.');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al buscar la ubicación. Por favor, intenta de nuevo.');
+          });
+      }
+    }
+    
+    function marcarUbicacion(lat, lon, displayName) {
+      // Marcar la ubicación en el mapa
+      if (currentLocationMarker) {
+        map.removeLayer(currentLocationMarker);
+      }
+      
+      currentLocationMarker = L.marker([lat, lon], {
+        icon: L.divIcon({
+          className: 'custom-div-icon',
+          html: "<div style='background-color:#e74c3c;width:16px;height:16px;border-radius:50%;border:2px solid white;'></div>",
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        })
+      }).addTo(map);
+      
+      currentLocationMarker.bindPopup(displayName).openPopup();
+      
+      // Centrar el mapa en la ubicación
+      map.setView([lat, lon], 13);
+      
+      // Buscar sedes cercanas
+      buscarSedesCercanas(lat, lon);
+    }
+    
+    function buscarSedesCercanas(lat, lon) {
+      const resultados = sedes.map(sede => {
+        const d = distancia(lat, lon, sede.coords[0], sede.coords[1]);
+        return { ...sede, distancia: d.toFixed(2) };
+      }).sort((a, b) => a.distancia - b.distancia);
+      
+      const contenedor = document.getElementById("resultados");
+      contenedor.innerHTML = "";
+      resultados.forEach(s => {
+        const div = document.createElement("div");
+        div.className = "sede-info";
+        div.innerHTML = `
+          <strong>${s.ciudad}</strong> (${s.distancia} km)<br>
+          ${s.direccion}<br>
+          <button class="btn" onclick="centrarEnMapa([${s.coords[0]}, ${s.coords[1]}])">Ver en el mapa</button>
+        `;
+        contenedor.appendChild(div);
+      });
+      
+      document.getElementById("modal").style.display = "block";
+    }
 
-function centrarEnMapa(coords) {
-  map.flyTo(coords, 16); // También podés usar map.setView(coords, 16)
-  
-    const modal = document.getElementById("modal");
-  if (modal) {
-    modal.style.display = "none";
-  }
-}
+    function centrarEnMapa(coords) {
+      map.flyTo(coords, 16);
+      const modal = document.getElementById("modal");
+      if (modal) {
+        modal.style.display = "none";
+      }
+    }
+    
     const sedes = [
-      { ciudad: "Ciudad Autónoma de Buenos Aires", url: "https://flisol.info/FLISOL2025/Argentina/CABA", direccion: "Viamonte 2518", coords: [-34.6062848, -58.3794688] },
+      { ciudad: "Ciudad Autónoma de Buenos Aires", url: "https://flisol.info/FLISOL2025/Argentina/CABA", direccion: "Av. Triunvirato 3174", coords: [-34.5841483,-58.4669326] },
       { ciudad: "Córdoba", url: "https://flisol.info/FLISOL2025/Argentina/Cordoba", direccion: "Ciudad Universitaria", coords: [-31.43401,-64.18632] },
       { ciudad: "San Cristobal", url: "https://flisol.info/FLISOL2025/Argentina/Santa-Fe/San-Cristobal", direccion: "Alvear 646", coords: [-30.3109661,-61.2329652] },
       { ciudad: "Sierras Chicas", url: "https://flisol.info/FLISOL2025/Argentina/SierrasChicas", direccion: "Dermidio Loza 252, Río Ceballos, Córdoba", coords: [-31.2043894, -64.3140594] },
       { ciudad: "San Juan", url: "https://flisol.info/FLISOL2025/Argentina/San-Juan", direccion: "Avenida Ignacio de la Roza 590", coords: [-31.5407749,-68.5792448] },
       { ciudad: "José C Paz", url: "https://flisol.info/FLISOL2025/Argentina/Jose-C-Paz", direccion: "Leandro N. Alem 4731", coords: [-34.5210461,-58.7479877] },
       { ciudad: "Villa Mercedes", url: "https://flisol.info/FLISOL2025/Argentina/VillaMercedes", direccion: "Las Heras 383", coords: [-33.6870272,-65.4703878] },
-      { ciudad: "Quilmes", url: "https://flisol.info/FLISOL2025/Argentina/Quilmes", direccion: "Belgrano N°950 - Don Bosco", coords: [-34.7064967, -58.298532] },
+      { ciudad: "Quilmes", url: "https://flisol.info/FLISOL2025/Argentina/Quilmes", direccion: "Belgrano N°950 - Don Bosco", coords: [-34.7065606,-58.2940688] },
       { ciudad: "Rio Cuarto", url: "https://flisol.info/FLISOL2025/Argentina/RioCuarto", direccion: "Lavalle 954", coords: [-33.1273234,-64.3458308] },
-      { ciudad: "Neuquén", url: "https://flisol.info/FLISOL2025/Argentina/Neuquen", direccion: "Buenos Aires 1400", coords: [-38.9405405,-68.0564352] }
+      { ciudad: "Neuquén", url: "https://flisol.info/FLISOL2025/Argentina/Neuquen", direccion: "Buenos Aires 1400", coords: [-38.9405405,-68.0564352] },
+      { ciudad: "La Plata", url: "https://flisol.info/FLISOL2025/Argentina/LAPLATA", direccion: "calle 120 y 50", coords: [-34.9035014,-57.9380554] },
+      { ciudad: "Salta", url: "https://flisol.info/FLISOL2025/Argentina/Salta", direccion: "Av. Bolivia 5150", coords: [-24.7283896,-65.4100358] },
+      { ciudad: "Florencio Varela", url: "https://flisol.info/FLISOL2025/Argentina/Varela", direccion: "Av. Calchaquí 6200", coords: [-34.7747749,-58.2677737] },
+      { ciudad: " San Francisco", url: "https://flisol.info/FLISOL2025/Argentina/SanFrancisco", direccion: "Bv. 9 de Julio 1700", coords: [-31.4304565,-62.0858188] }
     ];
 
-    const map = L.map('map').setView([-34.6, -58.4], 5);
+    const map = L.map('map');
+    map.fitBounds([
+      [-55, -73], // Sudoeste: Tierra del Fuego
+      [-21, -53]  // Noreste: Misiones
+    ]);
+    
     L.tileLayer('https://wms.ign.gob.ar/geoserver/gwc/service/tms/1.0.0/capabaseargenmap@EPSG%3A3857@png/{z}/{x}/{-y}.png', {
-    attribution: '<a href="http://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> | <a href="http://www.ign.gob.ar/AreaServicios/Argenmap/IntroduccionV2" target="_blank">Instituto Geográfico Nacional</a> + <a href="http://www.osm.org/copyright" target="_blank">OpenStreetMap</a>',
-}).addTo(map);
+      attribution: '<a href="http://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> | <a href="http://www.ign.gob.ar/AreaServicios/Argenmap/IntroduccionV2" target="_blank">Instituto Geográfico Nacional</a> + <a href="http://www.osm.org/copyright" target="_blank">OpenStreetMap</a>',
+    }).addTo(map);
 
+    const frasesFLISoL = [
+      "¿Nos organizamos para ir al FLISoL en ",
+      "¿Vamos juntos al FLISoL en ",
+      "¿Qué les parece si armamos plan para el FLISoL en ",
+      "¿Coordinamos para ir al FLISoL en ",
+      "¿Se prenden para ir al FLISoL en ",
+      "¿Organizamos grupo para ir al FLISoL en ",
+      "¿Nos juntamos para ir al FLISoL en ",
+      "¿Nos ponemos de acuerdo para ir al FLISoL en ",
+      "¿Hacemos una salida al FLISoL en ",
+      "¿Vamos todos al FLISoL en "
+    ];
+
+    const fraseAleatoria = frasesFLISoL[Math.floor(Math.random() * frasesFLISoL.length)];
+    
     sedes.forEach(sede => {
       const marker = L.marker(sede.coords).addTo(map);
       marker.bindPopup(`
@@ -111,9 +466,9 @@ function centrarEnMapa(coords) {
         ${sede.direccion}<br>
         <a href="${sede.url}" target="_blank">Ver más</a><br><br>
         <div class="compartir">
-          <a href="https://wa.me/?text=${encodeURIComponent("¿Organizamos para ir al FLISoL en " + sede.ciudad + "? " + sede.url)}" target="_blank">📱 WhatsApp</a>
-          <a href="https://t.me/share/url?url=${encodeURIComponent(sede.url)}&text=${encodeURIComponent("¿Organizamos para ir al FLISoL en " + sede.ciudad + "?")}" target="_blank">📢 Telegram</a>
-          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent("¿Organizamos para ir al #FLISoL2025 en " + sede.ciudad + "? " + sede.url)}" target="_blank">🐦 Twitter/X</a>
+          <a href="https://wa.me/?text=${encodeURIComponent(fraseAleatoria + sede.ciudad + "? " + sede.url)}" target="_blank">📱 WhatsApp</a>
+          <a href="https://t.me/share/url?url=${encodeURIComponent(sede.url)}&text=${encodeURIComponent(fraseAleatoria + sede.ciudad + "?")}" target="_blank">📢 Telegram</a>
+          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(fraseAleatoria + sede.ciudad + "? " + sede.url)}" target="_blank">🐦 Twitter/X</a>
         </div>
       `);
     });
@@ -138,29 +493,7 @@ function centrarEnMapa(coords) {
       navigator.geolocation.getCurrentPosition(pos => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
-        const resultados = sedes.map(sede => {
-          const d = distancia(lat, lon, sede.coords[0], sede.coords[1]);
-          return { ...sede, distancia: d.toFixed(2) };
-        }).sort((a, b) => a.distancia - b.distancia);
-
-
-
-
-const contenedor = document.getElementById("resultados");
-contenedor.innerHTML = "";
-resultados.forEach(s => {
-  const div = document.createElement("div");
-  div.className = "sede-info";
-  div.innerHTML = `
-    <strong>${s.ciudad}</strong> (${s.distancia} km)<br>
-    ${s.direccion}<br>
-    <button class="btn" onclick="centrarEnMapa([${s.coords[0]}, ${s.coords[1]}])">Ver en el mapa</button>
-  `;
-  contenedor.appendChild(div);
-});
-
-
-        document.getElementById("modal").style.display = "block";
+        buscarSedesCercanas(lat, lon);
       }, err => {
         alert("Error obteniendo tu ubicación.");
       });
